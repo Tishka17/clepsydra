@@ -1,0 +1,2 @@
+class UnknownTask(RuntimeError):
+    pass
