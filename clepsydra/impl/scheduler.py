@@ -6,17 +6,18 @@ from typing import Dict, Type, Optional, Tuple, Any
 
 from clepsydra import UnknownTaskError
 from clepsydra.api.context import Context
+from clepsydra.api.executor import Executor
 from clepsydra.api.rules import Rule
 from clepsydra.api.scheduler import Scheduler
 from clepsydra.api.storage import Storage, JobInfo
-from clepsydra.impl.memory_storage import MemoryStorage
 
 logger = getLogger(__name__)
 
 
 class SchedulerImpl(Scheduler):
-    def __init__(self, storage: Storage):
+    def __init__(self, storage: Storage, executor: Executor):
         self.storage = storage
+        self.executor = executor
         self.middlewares = []
         self.task_names: Dict[str, Callable] = {}
         self.error_handlers: Dict[Type, Callable] = {}
@@ -30,10 +31,10 @@ class SchedulerImpl(Scheduler):
         self.task_names[name] = task_func
 
     def error_handler(self, error_type, handler):
-        self.error_handlers[error_type] = handler
+        self.executor.error_handler(error_type, handler)
 
     def middleware(self, middleware):
-        self.middlewares.append(middleware)
+        self.executor.middleware(middleware)
 
     def get_job(self, job_id: str):
         return self.storage.get_job(job_id)
@@ -66,23 +67,12 @@ class SchedulerImpl(Scheduler):
             task = self.task_names[name]
         except KeyError as e:
             raise UnknownTaskError from e
-        data = {}
         context = Context(
             scheduler=self,
-            data=data,
+            data={},
             run_info={},
         )
-        try:
-            for m in self.middlewares:
-                m(context, *args, **kwargs)
-            logger.debug("Run task: %s", task)
-            task(context, *args, **kwargs)
-        except Exception as e:
-            for err_type in type(e).mro():
-                if err_type in self.error_handlers:
-                    self.error_handlers[err_type]()
-                    return
-            raise
+        self.executor.execute(task, context, args, kwargs)
 
     def run(self):
         while self.running:
@@ -108,9 +98,3 @@ class SchedulerImpl(Scheduler):
                 self.storage.schedule_next(job.job_id, next_start)
             else:
                 self.storage.remove_job(job.job_id)
-
-
-def create_scheduler() -> Scheduler:
-    return SchedulerImpl(
-        storage=MemoryStorage(),
-    )
