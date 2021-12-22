@@ -2,6 +2,7 @@ from datetime import datetime
 from typing import Optional, List, Dict
 from uuid import uuid4
 
+from clepsydra.api.exceptions import JobNotFoundError
 from clepsydra.api.storage import Storage, JobInfo
 
 
@@ -21,6 +22,14 @@ class MemoryStorage(Storage):
             jobs,
             key=lambda j: j.next_start,
         )
+
+    def get_job(
+            self, job_id: str,
+    ) -> JobInfo:
+        try:
+            return self.jobs[job_id]
+        except KeyError as e:
+            raise JobNotFoundError from e
 
     def get_jobs(
             self,

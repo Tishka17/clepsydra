@@ -1,2 +1,6 @@
-class UnknownTask(RuntimeError):
+class UnknownTaskError(RuntimeError):
+    pass
+
+
+class JobNotFoundError(KeyError):
     pass

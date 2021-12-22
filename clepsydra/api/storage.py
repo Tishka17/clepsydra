@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Protocol, Tuple, Any, Optional, List
+from typing import Protocol, Tuple, Any, Optional, List, Dict
 
 from .rules import Rule
 
@@ -10,10 +10,11 @@ class JobInfo:
     job_id: Optional[str]
     name: str
     args: Tuple[Any]
-    kwargs: Tuple[Any]
+    kwargs: Dict[str, Any]
     rule: Rule
     next_start: datetime
     created_at: datetime
+    meta: Optional[Dict[str, Any]]
 
 
 class Storage(Protocol):
@@ -29,6 +30,11 @@ class Storage(Protocol):
             next_after: Optional[datetime] = None,
             next_before: Optional[datetime] = None,
     ) -> List[JobInfo]:
+        pass
+
+    def get_job(
+            self, job_id: str,
+    ) -> JobInfo:
         pass
 
     def schedule_next(self, job_id: str, next_start: datetime):

@@ -2,8 +2,9 @@ from collections import Callable
 from datetime import datetime
 from logging import getLogger
 from time import sleep
-from typing import Dict, Type
+from typing import Dict, Type, Optional, Tuple, Any
 
+from clepsydra import UnknownTaskError
 from clepsydra.api.context import Context
 from clepsydra.api.rules import Rule
 from clepsydra.api.scheduler import Scheduler
@@ -34,7 +35,17 @@ class SchedulerImpl(Scheduler):
     def middleware(self, middleware):
         self.middlewares.append(middleware)
 
-    def add_job(self, name, rule: Rule, args=None, kwargs=None):
+    def get_job(self, job_id: str):
+        return self.storage.get_job(job_id)
+
+    def add_job(
+            self,
+            name: str,
+            rule: Rule,
+            args: Optional[Tuple] = None,
+            kwargs: Optional[Dict[str, Any]] = None,
+            meta: Optional[Dict[str, Any]] = None,
+    ) -> str:
         now = datetime.now()
         next_start = rule.get_next(datetime.fromtimestamp(1))
         job = JobInfo(
@@ -45,11 +56,16 @@ class SchedulerImpl(Scheduler):
             rule=rule,
             next_start=next_start,
             created_at=now,
+            meta=meta,
         )
         self.storage.save_job(job)
+        return job.job_id
 
     def trigger_task(self, name, args, kwargs):
-        task = self.task_names[name]
+        try:
+            task = self.task_names[name]
+        except KeyError as e:
+            raise UnknownTaskError from e
         data = {}
         context = Context(
             scheduler=self,

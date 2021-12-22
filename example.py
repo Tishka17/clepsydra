@@ -1,13 +1,13 @@
 import logging
 from datetime import datetime
 
-from clepsydra import create_scheduler, SingleRun
+from clepsydra import create_scheduler, SingleRun, Context
 
 scheduler = create_scheduler()
 
 
 @scheduler.task
-def func(context):
+def func(context: Context):
     print("Called func with context:", context)
 
 

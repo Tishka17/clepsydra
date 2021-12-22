@@ -1,4 +1,4 @@
-from typing import Protocol
+from typing import Protocol, Dict, Optional, Tuple
 
 from .rules import Rule
 
@@ -13,7 +13,14 @@ class Scheduler(Protocol):
     def middleware(self, middleware):
         pass
 
-    def add_job(self, name, rule: Rule, args=None, kwargs=None):
+    def add_job(
+            self,
+            name: str,
+            rule: Rule,
+            args: Optional[Tuple] = None,
+            kwargs: Optional[Dict] = None,
+            meta: Optional[Dict] = None,
+    ) -> str:
         pass
 
     def trigger_task(self, name, args, kwargs):
