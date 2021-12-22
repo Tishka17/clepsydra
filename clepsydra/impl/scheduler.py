@@ -1,7 +1,7 @@
+import asyncio
 from collections import Callable
 from datetime import datetime
 from logging import getLogger
-from time import sleep
 from typing import Dict, Type, Optional, Tuple, Any
 
 from clepsydra import UnknownTaskError
@@ -22,6 +22,8 @@ class SchedulerImpl(Scheduler):
         self.task_names: Dict[str, Callable] = {}
         self.error_handlers: Dict[Type, Callable] = {}
         self.running = True
+        self.storage_limit = 100
+        self.running_jobs = set()
 
     def task(self, task_func=None, *, name=None):
         if name is None:
@@ -74,27 +76,35 @@ class SchedulerImpl(Scheduler):
         )
         await self.executor.execute(task, context, args, kwargs)
 
-    async def run(self):
-        while self.running:
-            job = await self.storage.get_next_job()
-            logger.debug("Read job from sotrage: %s", job)
-            if not job:
-                logger.debug("No job, sleeping")
-                sleep(1)
-                continue
-            now = datetime.now()
-            if job.next_start > now:
-                logger.debug("No early, sleeping")
-                sleep(1)
-                continue
-
+    async def _process_job(self, job: JobInfo, now: datetime):
+        try:
             await self.trigger_task(
                 name=job.name,
                 args=job.args,
                 kwargs=job.kwargs,
             )
-            next_start = job.rule.get_next(now)
-            if next_start:
-                await self.storage.schedule_next(job.job_id, next_start)
-            else:
-                await self.storage.remove_job(job.job_id)
+        finally:
+            self.running_jobs.remove(job.job_id)
+        next_start = job.rule.get_next(now)
+        if next_start:
+            await self.storage.schedule_next(job.job_id, next_start)
+        else:
+            await self.storage.remove_job(job.job_id)
+
+    async def run(self):
+        while self.running:
+            now = datetime.now()
+            jobs = await self.storage.get_jobs(
+                next_before=now,
+                limit=self.storage_limit,
+            )
+            logger.debug("Read job from storage: %s", jobs)
+            jobs = [job for job in jobs if job.job_id not in self.running_jobs]
+            logger.debug("Not running jobs: %s", jobs)
+            if not jobs:
+                logger.debug("No jobs, sleeping")
+                await asyncio.sleep(1)
+                continue
+            for job in jobs:
+                self.running_jobs.add(job.job_id)
+                asyncio.create_task(self._process_job(job, now))

@@ -29,7 +29,11 @@ class Storage(Protocol):
             self,
             next_after: Optional[datetime] = None,
             next_before: Optional[datetime] = None,
+            limit: Optional[int] = None,
     ) -> List[JobInfo]:
+        """
+        Retrieves jobs with filtering in order of `next_start`
+        """
         pass
 
     async def get_job(

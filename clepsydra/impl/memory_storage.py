@@ -15,13 +15,10 @@ class MemoryStorage(Storage):
             next_after: Optional[datetime] = None,
             next_before: Optional[datetime] = None,
     ) -> Optional[JobInfo]:
-        jobs = await self.get_jobs(next_after, next_before)
+        jobs = await self.get_jobs(next_after, next_before, limit=1)
         if not jobs:
             return None
-        return min(
-            jobs,
-            key=lambda j: j.next_start,
-        )
+        return jobs[0]
 
     async def get_job(
             self, job_id: str,
@@ -35,6 +32,7 @@ class MemoryStorage(Storage):
             self,
             next_after: Optional[datetime] = None,
             next_before: Optional[datetime] = None,
+            limit: Optional[int] = None,
     ) -> List[JobInfo]:
         res: List[JobInfo] = []
         for job in self.jobs.values():
@@ -43,6 +41,9 @@ class MemoryStorage(Storage):
                     (next_before is None or job.next_start < next_before)
             ):
                 res.append(job)
+        res.sort(key=lambda j: j.next_start)
+        if limit is not None:
+            res = res[:limit]
         return res
 
     async def remove_job(self, job_id: str):

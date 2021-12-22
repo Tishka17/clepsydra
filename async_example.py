@@ -11,12 +11,15 @@ scheduler = create_scheduler(sync_executor=False)
 async def func(context: Context):
     # example of task
     print("Called func with context:", context)
+    await asyncio.sleep(5)
+    print("func done")
 
 
 @scheduler.middleware
 async def m(context, *args, **kwargs):
     # example of middleware to inject data
     context.data["now"] = datetime.now()
+    print("Middleware")
 
 
 async def main():
