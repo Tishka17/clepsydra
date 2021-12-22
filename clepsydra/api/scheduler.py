@@ -13,10 +13,10 @@ class Scheduler(Protocol):
     def middleware(self, middleware):
         pass
 
-    def add_task(self, name, rule: Rule, args=None, kwargs=None):
+    def add_job(self, name, rule: Rule, args=None, kwargs=None):
         pass
 
-    def trigger_task(self, name, *args, **kwargs):
+    def trigger_task(self, name, args, kwargs):
         pass
 
     def run(self):
