@@ -39,7 +39,7 @@ class SchedulerImpl(Scheduler):
     def get_job(self, job_id: str):
         return self.storage.get_job(job_id)
 
-    def add_job(
+    async def add_job(
             self,
             name: str,
             rule: Rule,
@@ -59,10 +59,10 @@ class SchedulerImpl(Scheduler):
             created_at=now,
             meta=meta,
         )
-        self.storage.save_job(job)
+        await self.storage.save_job(job)
         return job.job_id
 
-    def trigger_task(self, name, args, kwargs):
+    async def trigger_task(self, name, args, kwargs):
         try:
             task = self.task_names[name]
         except KeyError as e:
@@ -72,11 +72,11 @@ class SchedulerImpl(Scheduler):
             data={},
             run_info={},
         )
-        self.executor.execute(task, context, args, kwargs)
+        await self.executor.execute(task, context, args, kwargs)
 
-    def run(self):
+    async def run(self):
         while self.running:
-            job = self.storage.get_next_job()
+            job = await self.storage.get_next_job()
             logger.debug("Read job from sotrage: %s", job)
             if not job:
                 logger.debug("No job, sleeping")
@@ -88,13 +88,13 @@ class SchedulerImpl(Scheduler):
                 sleep(1)
                 continue
 
-            self.trigger_task(
+            await self.trigger_task(
                 name=job.name,
                 args=job.args,
                 kwargs=job.kwargs,
             )
             next_start = job.rule.get_next(now)
             if next_start:
-                self.storage.schedule_next(job.job_id, next_start)
+                await self.storage.schedule_next(job.job_id, next_start)
             else:
-                self.storage.remove_job(job.job_id)
+                await self.storage.remove_job(job.job_id)

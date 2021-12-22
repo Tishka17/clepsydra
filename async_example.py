@@ -4,17 +4,17 @@ from datetime import datetime
 
 from clepsydra import create_scheduler, SingleRun, Context
 
-scheduler = create_scheduler(sync_executor=True)
+scheduler = create_scheduler(sync_executor=False)
 
 
 @scheduler.task
-def func(context: Context):
+async def func(context: Context):
     # example of task
     print("Called func with context:", context)
 
 
 @scheduler.middleware
-def m(context, *args, **kwargs):
+async def m(context, *args, **kwargs):
     # example of middleware to inject data
     context.data["now"] = datetime.now()
 

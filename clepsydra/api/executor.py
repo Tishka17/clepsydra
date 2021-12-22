@@ -1,4 +1,4 @@
-from typing import Protocol, Callable, Type, Dict, List
+from typing import Protocol, Callable, Type, Dict, List, Optional
 
 
 class Executor(Protocol):
@@ -8,7 +8,7 @@ class Executor(Protocol):
     def middleware(self, middleware):
         pass
 
-    def execute(self, task, context, args, kwargs):
+    async def execute(self, task, context, args, kwargs):
         pass
 
 
@@ -22,3 +22,9 @@ class BaseExecutor(Executor):
 
     def middleware(self, middleware):
         self.middlewares.append(middleware)
+
+    def get_error_handler(self, exception: Exception) -> Optional[Callable]:
+        for err_type in type(exception).mro():
+            if err_type in self.error_handlers:
+                return self.error_handlers[err_type]
+        return

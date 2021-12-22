@@ -7,12 +7,14 @@ Main ideas are:
 * No pickle! Tasks are stored in readable format, so can be used outside of framework
 * Task creator doesn't need to know how tasks are implemented or executed
 * Persistence may be implemented
+* All workers must follow same async style: be either sync or async functions
 
 Currently project is in the design stage and any APIs are to be changed
 
 ### How to use:
 
-Create scheduler (this step will be customizable)
+Create scheduler (this step will be customizable). 
+If your task functions as synchronous, pass param `sync_executor=True`
 
 ```python
 from clepsydra import create_scheduler
@@ -31,11 +33,11 @@ Add some job using function name. For example single run:
 ```python
 from clepsydra import SingleRun
 
-job_id = scheduler.add_job("some_func", rule=SingleRun(when=datetime.now()))
+job_id = await scheduler.add_job("some_func", rule=SingleRun(when=datetime.now()))
 ```
 
 Run scheduler:
 
 ```python
-scheduler.run()
+await scheduler.run()
 ```

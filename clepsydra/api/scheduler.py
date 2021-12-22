@@ -13,7 +13,7 @@ class Scheduler(Protocol):
     def middleware(self, middleware):
         pass
 
-    def add_job(
+    async def add_job(
             self,
             name: str,
             rule: Rule,
@@ -23,8 +23,8 @@ class Scheduler(Protocol):
     ) -> str:
         pass
 
-    def trigger_task(self, name, args, kwargs):
+    async def trigger_task(self, name, args, kwargs):
         pass
 
-    def run(self):
+    async def run(self):
         pass
