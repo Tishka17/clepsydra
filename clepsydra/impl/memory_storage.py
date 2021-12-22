@@ -13,10 +13,13 @@ class MemoryStorage(Storage):
             self,
             next_after: Optional[datetime] = None,
             next_before: Optional[datetime] = None,
-    ) -> JobInfo:
+    ) -> Optional[JobInfo]:
+        jobs = self.get_jobs(next_after, next_before)
+        if not jobs:
+            return None
         return min(
-            self.get_jobs(next_after, next_before),
-            key=lambda j: j.next_start
+            jobs,
+            key=lambda j: j.next_start,
         )
 
     def get_jobs(
@@ -33,6 +36,9 @@ class MemoryStorage(Storage):
                 res.append(job)
         return res
 
+    def remove_job(self, job_id: str):
+        del self.jobs[job_id]
+
     def schedule_next(self, job_id: str, next_start: datetime):
         self.jobs[job_id].next_start = next_start
 
@@ -42,7 +48,7 @@ class MemoryStorage(Storage):
     def mark_started(self, job_id: str, started_at: datetime):
         pass
 
-    def save_task(self, job: JobInfo):
+    def save_job(self, job: JobInfo):
         if job.job_id is None:
             job.job_id = uuid4().hex
         self.jobs[job.job_id] = job

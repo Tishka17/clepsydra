@@ -40,5 +40,8 @@ class Storage(Protocol):
     def mark_started(self, job_id: str, started_at: datetime):
         pass
 
-    def save_task(self, job: JobInfo):
+    def save_job(self, job: JobInfo):
+        pass
+
+    def remove_job(self, job_id: str):
         pass
