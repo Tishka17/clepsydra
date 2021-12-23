@@ -1,8 +1,9 @@
 import asyncio
 from collections import Callable
 from datetime import datetime
+from functools import partial
 from logging import getLogger
-from typing import Dict, Type, Optional, Tuple, Any, Sequence
+from typing import Dict, Type, Optional, Tuple, Any
 
 from clepsydra import UnknownTaskError
 from clepsydra.api.context import Context
@@ -23,7 +24,6 @@ class SchedulerImpl(Scheduler):
         self.error_handlers: Dict[Type, Callable] = {}
         self.running = True
         self.storage_limit = 100
-        self.running_jobs = set()
 
     def task(self, task_func=None, *, name=None):
         if name is None:
@@ -77,23 +77,14 @@ class SchedulerImpl(Scheduler):
             run_info={},
         )
 
-    def _filter_not_running(self, jobs: Sequence[JobInfo]):
-        return [job for job in jobs if job.job_id not in self.running_jobs]
-
     async def trigger_task(self, name, args, kwargs):
-        task = self._get_task(name)
-        context = self._new_context()
-        await self.executor.execute(task, context, args, kwargs)
+        await self.executor.execute(
+            self._get_task(name),
+            self._new_context(),
+            args, kwargs
+        )
 
-    async def _process_job(self, job: JobInfo, now: datetime):
-        try:
-            await self.trigger_task(
-                name=job.name,
-                args=job.args,
-                kwargs=job.kwargs,
-            )
-        finally:
-            self.running_jobs.remove(job.job_id)
+    async def _on_job_success(self, job: JobInfo, now: datetime):
         next_start = job.rule.get_next(now)
         if next_start:
             await self.storage.schedule_next(job.job_id, next_start)
@@ -108,12 +99,18 @@ class SchedulerImpl(Scheduler):
                 limit=self.storage_limit,
             )
             logger.debug("Read job from storage: %s", jobs)
-            jobs = self._filter_not_running(jobs)
-            logger.debug("Not running jobs: %s", jobs)
-            if not jobs:
-                logger.debug("No jobs, sleeping")
-                await asyncio.sleep(1)
-                continue
+            any_job_started = False
             for job in jobs:
-                self.running_jobs.add(job.job_id)
-                asyncio.create_task(self._process_job(job, now))
+                on_success = partial(self._on_job_success, job, now)
+                job_started = await self.executor.execute(
+                    self._get_task(job.name),
+                    self._new_context(),
+                    job.args, job.kwargs,
+                    job_id=job.job_id,
+                    on_job_success=on_success,
+                )
+                any_job_started = job_started or any_job_started
+
+            if not any_job_started:
+                logger.debug("No jobs started, sleeping")
+                await asyncio.sleep(1)
