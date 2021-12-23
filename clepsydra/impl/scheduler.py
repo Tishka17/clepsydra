@@ -2,7 +2,7 @@ import asyncio
 from collections import Callable
 from datetime import datetime
 from logging import getLogger
-from typing import Dict, Type, Optional, Tuple, Any
+from typing import Dict, Type, Optional, Tuple, Any, Sequence
 
 from clepsydra import UnknownTaskError
 from clepsydra.api.context import Context
@@ -64,16 +64,25 @@ class SchedulerImpl(Scheduler):
         await self.storage.save_job(job)
         return job.job_id
 
-    async def trigger_task(self, name, args, kwargs):
+    def _get_task(self, name):
         try:
-            task = self.task_names[name]
+            return self.task_names[name]
         except KeyError as e:
             raise UnknownTaskError from e
-        context = Context(
+
+    def _new_context(self):
+        return Context(
             scheduler=self,
             data={},
             run_info={},
         )
+
+    def _filter_not_running(self, jobs: Sequence[JobInfo]):
+        return [job for job in jobs if job.job_id not in self.running_jobs]
+
+    async def trigger_task(self, name, args, kwargs):
+        task = self._get_task(name)
+        context = self._new_context()
         await self.executor.execute(task, context, args, kwargs)
 
     async def _process_job(self, job: JobInfo, now: datetime):
@@ -99,7 +108,7 @@ class SchedulerImpl(Scheduler):
                 limit=self.storage_limit,
             )
             logger.debug("Read job from storage: %s", jobs)
-            jobs = [job for job in jobs if job.job_id not in self.running_jobs]
+            jobs = self._filter_not_running(jobs)
             logger.debug("Not running jobs: %s", jobs)
             if not jobs:
                 logger.debug("No jobs, sleeping")
