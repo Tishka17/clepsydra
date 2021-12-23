@@ -1,10 +1,9 @@
-import asyncio
 import logging
 from datetime import datetime
 
 from clepsydra import create_scheduler, SingleRun, Context
 
-scheduler = create_scheduler(sync_executor=True)
+scheduler = create_scheduler()
 
 
 @scheduler.task
@@ -19,11 +18,11 @@ def m(context, *args, **kwargs):
     context.data["now"] = datetime.now()
 
 
-async def main():
+def main():
     logging.basicConfig(level=logging.DEBUG)
-    await scheduler.add_job("func", rule=SingleRun(datetime.now()))
-    await scheduler.run()
+    scheduler.add_job("func", rule=SingleRun(datetime.now()))
+    scheduler.run()
 
 
 if __name__ == '__main__':
-    asyncio.run(main())
+    main()

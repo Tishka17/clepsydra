@@ -1,17 +1,29 @@
-from typing import Protocol, Callable, Type, Dict, List, Optional, Any
+from typing import (
+    Protocol, Optional, Type, Tuple, Dict,
+)
+
+from .context import (
+    Context, ErrorHandler, Handler, AsyncErrorHandler, AsyncHandler,
+    OnSuccess, AsyncOnSuccess,
+)
 
 
 class Executor(Protocol):
-    def error_handler(self, error_type, handler):
+    def error_handler(self,
+                      error_type: Type[Exception],
+                      handler: ErrorHandler) -> None:
         pass
 
-    def middleware(self, middleware):
+    def middleware(self, middleware: Handler):
         pass
 
-    async def execute(
-            self, task, context, args, kwargs,
+    def execute(
+            self,
+            task: Handler,
+            context: Context,
+            args: Tuple, kwargs: Dict,
             job_id: Optional[str] = None,
-            on_job_success: Callable[[], Any] = None,
+            on_job_success: Optional[OnSuccess] = None,
     ) -> bool:
         """
         Returns False if task was not started:
@@ -20,35 +32,25 @@ class Executor(Protocol):
         pass
 
 
-class BaseExecutor(Executor):
-    def __init__(self):
-        self.middlewares: List[Callable] = []
-        self.error_handlers: Dict[Type, Callable] = {}
-        self.running_jobs = set()
+class AsyncExecutor(Protocol):
+    def error_handler(self,
+                      error_type: Type[Exception],
+                      handler: AsyncErrorHandler) -> None:
+        pass
 
-    def error_handler(self, error_type, handler):
-        self.error_handlers[error_type] = handler
+    def middleware(self, middleware: AsyncHandler):
+        pass
 
-    def middleware(self, middleware):
-        self.middlewares.append(middleware)
-
-    def get_error_handler(self, exception: Exception) -> Optional[Callable]:
-        for err_type in type(exception).mro():
-            if err_type in self.error_handlers:
-                return self.error_handlers[err_type]
-        return
-
-    def _add_running_job(self, job_id: Optional[str]) -> None:
-        if job_id is None:
-            return
-        self.running_jobs.add(job_id)
-
-    def _remove_running_job(self, job_id: Optional[str]) -> None:
-        if job_id is None:
-            return
-        self.running_jobs.remove(job_id)
-
-    def _is_job_running(self, job_id: Optional[str]) -> bool:
-        if job_id is None:
-            return False
-        return job_id in self.running_jobs
+    async def execute(
+            self,
+            task: AsyncHandler,
+            context: Context,
+            args: Tuple, kwargs: Dict,
+            job_id: Optional[str] = None,
+            on_job_success: Optional[AsyncOnSuccess] = None,
+    ) -> bool:
+        """
+        Returns False if task was not started:
+            if it already running, lack of resources and so on
+        """
+        pass

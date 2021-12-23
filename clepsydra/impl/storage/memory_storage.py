@@ -10,17 +10,17 @@ class MemoryStorage(Storage):
     def __init__(self):
         self.jobs: Dict[str, JobInfo] = {}
 
-    async def get_next_job(
+    def get_next_job(
             self,
             next_after: Optional[datetime] = None,
             next_before: Optional[datetime] = None,
     ) -> Optional[JobInfo]:
-        jobs = await self.get_jobs(next_after, next_before, limit=1)
+        jobs = self.get_jobs(next_after, next_before, limit=1)
         if not jobs:
             return None
         return jobs[0]
 
-    async def get_job(
+    def get_job(
             self, job_id: str,
     ) -> JobInfo:
         try:
@@ -28,7 +28,7 @@ class MemoryStorage(Storage):
         except KeyError as e:
             raise JobNotFoundError from e
 
-    async def get_jobs(
+    def get_jobs(
             self,
             next_after: Optional[datetime] = None,
             next_before: Optional[datetime] = None,
@@ -46,19 +46,19 @@ class MemoryStorage(Storage):
             res = res[:limit]
         return res
 
-    async def remove_job(self, job_id: str):
+    def remove_job(self, job_id: str) -> None:
         del self.jobs[job_id]
 
-    async def schedule_next(self, job_id: str, next_start: datetime):
+    def schedule_next(self, job_id: str, next_start: datetime) -> None:
         self.jobs[job_id].next_start = next_start
 
-    async def mark_run_completed(self, job_id: str, started_at: datetime):
+    def mark_run_completed(self, job_id: str, started_at: datetime) -> None:
         pass
 
-    async def mark_started(self, job_id: str, started_at: datetime):
+    def mark_started(self, job_id: str, started_at: datetime) -> None:
         pass
 
-    async def save_job(self, job: JobInfo):
+    def save_job(self, job: JobInfo) -> None:
         if job.job_id is None:
             job.job_id = uuid4().hex
         self.jobs[job.job_id] = job

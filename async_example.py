@@ -2,9 +2,9 @@ import asyncio
 import logging
 from datetime import datetime
 
-from clepsydra import create_scheduler, SingleRun, Context
+from clepsydra import create_async_scheduler, SingleRun, Context
 
-scheduler = create_scheduler(sync_executor=False)
+scheduler = create_async_scheduler()
 
 
 @scheduler.task
