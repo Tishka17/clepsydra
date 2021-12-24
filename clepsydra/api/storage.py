@@ -43,7 +43,7 @@ class Storage(BaseStorage[None], Protocol):
             self,
             next_after: Optional[datetime] = None,
             next_before: Optional[datetime] = None,
-    ) -> JobInfo:
+    ) -> Optional[JobInfo]:
         pass
 
     def get_jobs(
@@ -66,7 +66,7 @@ class AsyncStorage(BaseStorage[Awaitable[None]], Protocol):
             self,
             next_after: Optional[datetime] = None,
             next_before: Optional[datetime] = None,
-    ) -> JobInfo:
+    ) -> Optional[JobInfo]:
         pass
 
     async def get_jobs(

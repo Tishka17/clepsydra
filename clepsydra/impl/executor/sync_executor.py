@@ -3,7 +3,7 @@ from functools import partial
 from logging import getLogger
 from typing import Optional, Callable, Any
 
-from clepsydra.api.executor import (
+from clepsydra.api.context import (
     Handler, ErrorHandler, OnSuccess,
 )
 from .base import BaseExecutor

@@ -1,56 +1,56 @@
+from __future__ import annotations
+
 from typing import (
-    Protocol, Optional, Type, Tuple, Dict,
+    Protocol, Optional, Type, Tuple, Dict, overload, Literal, Awaitable,
 )
 
 from .context import (
-    Context, ErrorHandler, Handler, AsyncErrorHandler, AsyncHandler,
-    OnSuccess, AsyncOnSuccess,
+    Context, AsyncH, AsyncEH, SyncH, SyncEH, Handler,
+    OnSuccess, AsyncOnSuccess, IsAsync,
 )
 
 
-class Executor(Protocol):
-    def error_handler(self,
+class Executor(Protocol[IsAsync]):
+    @overload
+    def error_handler(self: Executor[Literal[True]],
                       error_type: Type[Exception],
-                      handler: ErrorHandler) -> None:
-        pass
+                      handler: AsyncEH) -> AsyncEH:
+        ...
 
-    def middleware(self, middleware: Handler):
-        pass
+    @overload
+    def error_handler(self: Executor[Literal[False]],
+                      error_type: Type[Exception],
+                      handler: SyncEH) -> SyncEH:
+        ...
 
+    @overload
+    def middleware(self: Executor[Literal[True]],
+                   middleware: AsyncH) -> AsyncH:
+        ...
+
+    @overload
+    def middleware(self: Executor[Literal[False]],
+                   middleware: SyncH) -> SyncH:
+        ...
+
+    @overload
     def execute(
-            self,
-            task: Handler,
+            self: Executor[Literal[False]],
+            task: Handler[False],
             context: Context,
             args: Tuple, kwargs: Dict,
             job_id: Optional[str] = None,
             on_job_success: Optional[OnSuccess] = None,
     ) -> bool:
-        """
-        Returns False if task was not started:
-            if it already running, lack of resources and so on
-        """
-        pass
+        ...
 
-
-class AsyncExecutor(Protocol):
-    def error_handler(self,
-                      error_type: Type[Exception],
-                      handler: AsyncErrorHandler) -> None:
-        pass
-
-    def middleware(self, middleware: AsyncHandler):
-        pass
-
-    async def execute(
-            self,
-            task: AsyncHandler,
+    @overload
+    def execute(
+            self: Executor[Literal[True]],
+            task: Handler[True],
             context: Context,
             args: Tuple, kwargs: Dict,
             job_id: Optional[str] = None,
             on_job_success: Optional[AsyncOnSuccess] = None,
-    ) -> bool:
-        """
-        Returns False if task was not started:
-            if it already running, lack of resources and so on
-        """
-        pass
+    ) -> Awaitable[bool]:
+        ...

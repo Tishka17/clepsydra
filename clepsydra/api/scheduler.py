@@ -1,58 +1,83 @@
-from typing import Protocol, Dict, Optional, Tuple
+from __future__ import annotations
 
-from .context import ErrorHandler, Handler, AsyncErrorHandler, AsyncHandler
+from typing import Protocol, Dict, Optional, Tuple, overload, Literal, Type, \
+    Awaitable
+
+from .context import (
+    SyncH, SyncEH, AsyncEH, AsyncH, IsAsync,
+)
 from .rules import Rule
 
 
-class Scheduler(Protocol):
-    def task(self, task_func: Handler, *, name=None):
+class Scheduler(Protocol[IsAsync]):
+    @overload
+    def task(self: Scheduler[Literal[True]],
+             task_func: SyncH, *, name=None) -> SyncH:
         pass
 
-    def error_handler(self, error_type: Exception, handler: ErrorHandler):
+    @overload
+    def task(self: Scheduler[Literal[True]],
+             task_func: SyncH, *, name=None) -> SyncH:
         pass
 
-    def middleware(self, middleware: Handler):
-        pass
+    @overload
+    def error_handler(self: Scheduler[Literal[True]],
+                      error_type: Type[Exception],
+                      handler: AsyncEH) -> AsyncEH:
+        ...
 
+    @overload
+    def error_handler(self: Scheduler[Literal[False]],
+                      error_type: Type[Exception],
+                      handler: SyncEH) -> SyncEH:
+        ...
+
+    @overload
+    def middleware(self: Scheduler[Literal[True]],
+                   middleware: AsyncH) -> AsyncH:
+        ...
+
+    @overload
+    def middleware(self: Scheduler[Literal[False]],
+                   middleware: SyncH) -> SyncH:
+        ...
+
+    @overload
     def add_job(
-            self,
+            self: Scheduler[Literal[True]],
+            name: str,
+            rule: Rule,
+            args: Optional[Tuple] = None,
+            kwargs: Optional[Dict] = None,
+            meta: Optional[Dict] = None,
+    ) -> Awaitable[str]:
+        ...
+
+    @overload
+    def add_job(
+            self: Scheduler[Literal[False]],
             name: str,
             rule: Rule,
             args: Optional[Tuple] = None,
             kwargs: Optional[Dict] = None,
             meta: Optional[Dict] = None,
     ) -> str:
-        pass
+        ...
 
-    def trigger_task(self, name, args, kwargs):
-        pass
+    @overload
+    def trigger_task(self: Scheduler[Literal[True]],
+                     name: str, args, kwargs) -> Awaitable[None]:
+        ...
 
-    def run(self):
-        pass
+    @overload
+    def trigger_task(self: Scheduler[Literal[False]],
+                     name: str, args, kwargs) -> None:
+        ...
 
+    @overload
+    def run(self: Scheduler[Literal[True]]) -> Awaitable[None]:
+        ...
 
-class AsyncScheduler(Protocol):
-    def task(self, task_func: AsyncHandler, *, name=None):
-        pass
-
-    def error_handler(self, error_type: Exception, handler: AsyncErrorHandler):
-        pass
-
-    def middleware(self, middleware: AsyncHandler):
-        pass
-
-    async def add_job(
-            self,
-            name: str,
-            rule: Rule,
-            args: Optional[Tuple] = None,
-            kwargs: Optional[Dict] = None,
-            meta: Optional[Dict] = None,
-    ) -> str:
-        pass
-
-    async def trigger_task(self, name, args, kwargs):
-        pass
-
-    async def run(self):
-        pass
+    @overload
+    def run(self: Scheduler[Literal[False]]) -> None:
+        ...

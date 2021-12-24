@@ -1,11 +1,8 @@
-from typing import Callable, Optional, List, Dict, Type, TypeVar, Generic
+from typing import Optional, List, Dict, Type, Generic
 
-from clepsydra.api.executor import (
-    Handler, AsyncHandler, ErrorHandler, AsyncErrorHandler,
+from clepsydra.api.context import (
+    H, EH,
 )
-
-H = TypeVar("H", Handler, AsyncHandler)
-EH = TypeVar("EH", ErrorHandler, AsyncErrorHandler)
 
 
 class BaseExecutor(Generic[H, EH]):
@@ -20,11 +17,11 @@ class BaseExecutor(Generic[H, EH]):
     def middleware(self, middleware: H):
         self.middlewares.append(middleware)
 
-    def get_error_handler(self, exception: Exception) -> Optional[Callable]:
+    def get_error_handler(self, exception: Exception) -> Optional[EH]:
         for err_type in type(exception).mro():
             if err_type in self.error_handlers:
                 return self.error_handlers[err_type]
-        return
+        return None
 
     def _add_running_job(self, job_id: Optional[str]) -> None:
         if job_id is None:
