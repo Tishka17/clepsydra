@@ -1,7 +1,6 @@
-from collections import Callable
 from datetime import datetime
 from logging import getLogger
-from typing import Dict, Type, Optional, Tuple, Any, TypeVar, Generic, Union
+from typing import Dict, Type, Optional, Tuple, Any, TypeVar, Generic, Union, Callable
 
 from clepsydra.api.context import Context
 from clepsydra.api.exceptions import UnknownTaskError
